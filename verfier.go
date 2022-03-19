@@ -6,8 +6,12 @@ import (
 )
 
 var (
+	// ErrCountMoreThanLength is configuration error, will return if we expect more function than we provide for verifier.AtLeast or verifier.Exact
 	ErrCountMoreThanLength = errors.New("cant wait more than exists")
-	ErrMaxAmountOfError    = errors.New("verifier reach max amount of error")
+	// ErrMaxAmountOfError wii be returned some function which we not expect return error
+	ErrMaxAmountOfError = errors.New("verifier reach max amount of error")
+	// ErrMaxAmountOfFinished will be returned if some other function(which we not expect) return success
+	ErrMaxAmountOfFinished = errors.New("verifier reach max amount success jobs")
 )
 
 type Verifier func(ctx context.Context) error
@@ -29,7 +33,7 @@ func New(ctx context.Context) *verifier {
 
 // All verify all function finished without error in given context timeout/deadline
 func (f *verifier) All(fns ...Verifier) error {
-	return f.process(0, fns...)
+	return f.process(0, true, fns...)
 }
 
 // AtLeast verifies is at least provided amount of functions will be finished without error in given context timeout/deadline
@@ -37,15 +41,33 @@ func (f *verifier) AtLeast(count int, fns ...Verifier) error {
 	if count > len(fns) {
 		return ErrCountMoreThanLength
 	}
-	return f.process(len(fns)-count, fns...)
+	return f.process(len(fns)-count, false, fns...)
 }
 
 // OneOf verify at least one function finished without error in given context timeout/deadline
 func (f *verifier) OneOf(fns ...Verifier) error {
-	return f.process(len(fns)-1, fns...)
+	return f.process(len(fns)-1, false, fns...)
 }
 
-func (f *verifier) process(maxErrorCount int, fns ...Verifier) error {
+// OnlyOne verify exactly one function finished without error in given context timeout/deadline
+func (f *verifier) OnlyOne(fns ...Verifier) error {
+	return f.process(len(fns)-1, true, fns...)
+}
+
+// Exact verify exactly provided amount of functions finished without error in given context timeout/deadline
+func (f *verifier) Exact(count int, fns ...Verifier) error {
+	if count > len(fns) {
+		return ErrCountMoreThanLength
+	}
+	return f.process(len(fns)-count, true, fns...)
+}
+
+// NoOne verifies no one from functions finished without error in given context timeout/deadline
+func (f *verifier) NoOne(fns ...Verifier) error {
+	return f.process(len(fns), true, fns...)
+}
+
+func (f *verifier) process(maxErrorCount int, exact bool, fns ...Verifier) error {
 	if len(fns) == 0 {
 		return nil
 	}
@@ -71,10 +93,28 @@ func (f *verifier) process(maxErrorCount int, fns ...Verifier) error {
 			} else {
 				doneWithError += 1
 			}
-			if doneWithoutError == len(fns)-maxErrorCount {
-				return nil
+			if !exact {
+				if doneWithoutError == len(fns)-maxErrorCount {
+					return nil
+				}
+				if doneWithError > maxErrorCount {
+					return ErrMaxAmountOfError
+				}
+				continue
 			}
+
 			if doneWithError > maxErrorCount {
+				return ErrMaxAmountOfError
+			}
+
+			if doneWithoutError > len(fns)-maxErrorCount {
+				return ErrMaxAmountOfFinished
+			}
+
+			if doneWithError+doneWithoutError == len(fns) {
+				if doneWithError == maxErrorCount {
+					return nil
+				}
 				return ErrMaxAmountOfError
 			}
 		}
