@@ -33,7 +33,7 @@ func New(ctx context.Context) *verifier {
 
 // All verify all function finished without error in given context timeout/deadline
 func (f *verifier) All(fns ...Verifier) error {
-	return f.process(0, true, fns...)
+	return f.Exact(len(fns), fns...)
 }
 
 // AtLeast verifies is at least provided amount of functions will be finished without error in given context timeout/deadline
@@ -46,12 +46,12 @@ func (f *verifier) AtLeast(count int, fns ...Verifier) error {
 
 // OneOf verify at least one function finished without error in given context timeout/deadline
 func (f *verifier) OneOf(fns ...Verifier) error {
-	return f.process(len(fns)-1, false, fns...)
+	return f.AtLeast(1, fns...)
 }
 
 // OnlyOne verify exactly one function finished without error in given context timeout/deadline
 func (f *verifier) OnlyOne(fns ...Verifier) error {
-	return f.process(len(fns)-1, true, fns...)
+	return f.Exact(1, fns...)
 }
 
 // Exact verify exactly provided amount of functions finished without error in given context timeout/deadline
@@ -64,7 +64,7 @@ func (f *verifier) Exact(count int, fns ...Verifier) error {
 
 // NoOne verifies no one from functions finished without error in given context timeout/deadline
 func (f *verifier) NoOne(fns ...Verifier) error {
-	return f.process(len(fns), true, fns...)
+	return f.Exact(0, fns...)
 }
 
 func (f *verifier) process(maxErrorCount int, exact bool, fns ...Verifier) error {
@@ -112,10 +112,7 @@ func (f *verifier) process(maxErrorCount int, exact bool, fns ...Verifier) error
 			}
 
 			if doneWithError+doneWithoutError == len(fns) {
-				if doneWithError == maxErrorCount {
-					return nil
-				}
-				return ErrMaxAmountOfError
+				return nil
 			}
 		}
 	}
