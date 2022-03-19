@@ -7,16 +7,3 @@ coverage:
       default:
         target: 80%    # the required coverage value
         threshold: 2%  # the leniency in hitting the target
-
-parsers:
-  gcov:
-    branch_detection:
-      conditional: yes
-      loop: yes
-      method: no
-      macro: no
-
-comment:
-  layout: "reach,diff,flags,files,footer"
-  behavior: default
-  require_changes: no

@@ -16,7 +16,7 @@ go get github.com/PxyUp/verifiers
 
 # Methods
 
-- [verifier.All(...Verifier)](#verifiersall) - - is equal verifier.Exact(len(fns), fns ...Verifier)
+- [verifier.All(...Verifier)](#verifierall) - is equal verifier.Exact(len(fns), fns ...Verifier)
 - [verifier.OneOf(...Verifier)](#verifieroneof) - is equal verifier.AtLeast(1, ...Verifier)
 - [verifier.AtLeast(int, ...Verifier)](#verifieratleast) 
 - [verifier.Exact(int, ...Verifier)](#verifierexact) 
