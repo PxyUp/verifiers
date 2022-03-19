@@ -23,6 +23,10 @@ go get github.com/PxyUp/verifiers
 - [verifier.OnlyOne(...Verifier)](#verifieronlyone) - is equal verifier.Exact(1, ...Verifier)
 - [verifier.NoOne(...Verifier)](#verifiernoone) - is equal verifier.Exact(0, ...Verifier)
 
+**For Go v1.18+(with generics)**
+
+- [verifiers.FromArray[T any](arr []T, cmp func(context.Context, T) error)](#verifiersfromarray) - generate Verifier from static array
+
 # List of errors
 ```go
 // ErrCountMoreThanLength is configuration error.
@@ -253,4 +257,65 @@ err := verifier.NoOne(
 // Because we should wait three function(all functions should be finished)
 assert.True(t, time.Now().Sub(startTime) >= time.Second*3)
 assert.Nil(t, err)
+```
+
+### verifiers.FromArray
+
+**JUST FOR Go v1.18+(GENERIC)**
+
+```go
+type Verifier func(ctx context.Context) error
+
+func FromArray[T any](arr []T, cmp func(context.Context, T) error) []Verifier
+```
+
+Method FromArray generate Verifier from static generic array. With that method you can also verify static array
+
+```go
+package verifiers_test
+
+import (
+	"context"
+	"errors"
+	"github.com/PxyUp/verifiers"
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func Test(t *testing.T) {
+	type People struct {
+		Name string
+		Age  int
+	}
+
+	people := []*People{
+		{
+			Age:  20,
+			Name: "First",
+		},
+		{
+			Age:  25,
+			Name: "Second",
+		},
+		{
+			Age:  30,
+			Name: "Third",
+		},
+	}
+
+	fns := verifiers.FromArray(people, func(ctx context.Context, p *People) error {
+		if p.Age >= 25 {
+			return nil
+		}
+		return errors.New("to old")
+	})
+
+	v := verifiers.New(context.Background())
+
+	assert.Equal(t, verifiers.ErrMaxAmountOfError, v.All(fns...))
+	assert.Equal(t, verifiers.ErrMaxAmountOfFinished, v.NoOne(fns...))
+	assert.Equal(t, nil, v.OneOf(fns...))
+	assert.Equal(t, nil, v.Exact(2, fns...))
+	assert.Equal(t, verifiers.ErrMaxAmountOfFinished, v.OnlyOne(fns...))
+}
 ```

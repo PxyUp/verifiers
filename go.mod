@@ -1,6 +1,6 @@
 module github.com/PxyUp/verifiers
 
-go 1.16
+go 1.18
 
 require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
