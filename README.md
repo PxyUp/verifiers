@@ -231,7 +231,7 @@ type Verifier func(ctx context.Context) error
 NoOne(fns ...Verifier) error
 ```
 
-Method verify exactly one function finished without error in given context timeout/deadline
+Method verifies no one from functions finished without error in given context timeout/deadline
 
 ```go
 verifier := verifiers.New(ctx)
