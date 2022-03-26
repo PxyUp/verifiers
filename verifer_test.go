@@ -3,6 +3,7 @@ package verifiers_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/PxyUp/verifiers"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -757,5 +758,35 @@ func TestVerifier_Exact(t *testing.T) {
 		time.Sleep(time.Second * 5)
 		assert.True(t, executed)
 		assert.True(t, finished)
+	})
+}
+
+func TestWithErrorComparator(t *testing.T) {
+	errIgnore := errors.New("ignore error")
+	t.Run("Return: nil - all without errors because WithErrorComparator options", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		v := verifiers.New(ctx, verifiers.WithErrorComparator(func(err error) bool {
+			if err == nil {
+				return false
+			}
+
+			if errors.Is(err, errIgnore) {
+				return false
+			}
+
+			return true
+		}))
+		assert.NoError(t, v.AtLeast(3,
+			func(ctx context.Context) error {
+				return errIgnore
+			},
+			func(ctx context.Context) error {
+				return fmt.Errorf("new error %w", errIgnore)
+			},
+			func(ctx context.Context) error {
+				return errIgnore
+			},
+		))
 	})
 }

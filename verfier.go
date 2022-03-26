@@ -12,22 +12,40 @@ var (
 	ErrMaxAmountOfError = errors.New("verifier reach max amount of error")
 	// ErrMaxAmountOfFinished will be returned if some other function(which we not expect) return success
 	ErrMaxAmountOfFinished = errors.New("verifier reach max amount success jobs")
+	// Using by default for check is error or not
+	defaultErrorCmp = func(a error) bool { return a != nil }
 )
 
 type Verifier func(ctx context.Context) error
 
 type verifier struct {
-	ctx context.Context
+	ctx    context.Context
+	errCmp func(error) bool
 }
+
+type option func(v *verifier)
 
 // New return new verifier with provided context
 // If context is nil will be used context.Background()
-func New(ctx context.Context) *verifier {
+func New(ctx context.Context, options ...option) *verifier {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return &verifier{
-		ctx: ctx,
+	v := &verifier{
+		ctx:    ctx,
+		errCmp: defaultErrorCmp,
+	}
+
+	for _, opt := range options {
+		opt(v)
+	}
+	return v
+}
+
+// WithErrorComparator will modify default behavior of checking error inside function
+func WithErrorComparator(cmp func(error) bool) option {
+	return func(v *verifier) {
+		v.errCmp = cmp
 	}
 }
 
@@ -88,7 +106,7 @@ func (f *verifier) process(maxErrorCount int, exact bool, fns ...Verifier) error
 			if !ok {
 				return context.Canceled
 			}
-			if errInner == nil {
+			if !f.errCmp(errInner) {
 				doneWithoutError += 1
 			} else {
 				doneWithError += 1
